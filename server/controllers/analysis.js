@@ -70,7 +70,13 @@ function extractKeyframes(videoPath, outFolder, everySeconds = 3) {
 
 async function downloadIfUrl(videoUrl, destPath) {
   // uses yt-dlp-exec
-  await ytdlp(videoUrl, { output: destPath, format: 'mp4' });
+  await ytdlp(videoUrl, {
+  output: destPath,
+  format: 'mp4',
+  proxy: 'http://13.201.84.208:80', // username/password nahi hai
+  cookies: path.join(__dirname, '..', 'cookies.txt'), // browser se export kiya hua
+});
+
   return destPath;
 }
 
