@@ -13,7 +13,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: "http://localhost:5173" /*"https://hook-ai-henna.vercel.app"*/,
+  origin: "https://hook-ai-henna.vercel.app" /*"https://hook-ai-henna.vercel.app"*/,
   credentials: true
 }));
 
