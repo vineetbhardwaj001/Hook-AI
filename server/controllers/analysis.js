@@ -69,16 +69,24 @@ function extractKeyframes(videoPath, outFolder, everySeconds = 3) {
 }
 
 async function downloadIfUrl(videoUrl, destPath) {
-  // uses yt-dlp-exec
-  await ytdlp(videoUrl, {
-  output: destPath,
-  format: 'mp4',
-  proxy: 'http://13.201.84.208:80', // username/password nahi hai
-  cookies: path.join(__dirname, '..', 'cookies.txt'), // browser se export kiya hua
-});
+  console.log(`📥 Downloading from: ${videoUrl}`);
 
+  await ytdlp(videoUrl, {
+    output: destPath,
+    format: 'mp4',
+    cookies: path.join(__dirname, '..', 'cookies.txt'),
+
+    // Extra reliability flags
+    'socket-timeout': 30,    // seconds
+    retries: 5,              // retry on failure
+    'retry-sleep': 5,        // wait 5 seconds between retries
+    verbose: true            // detailed logs for debugging
+  });
+
+  console.log(`✅ Download complete: ${destPath}`);
   return destPath;
 }
+
 
 // Attempt to find hook and CTA within transcript
 function findHookAndCTA(transcript) {
