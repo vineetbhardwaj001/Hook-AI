@@ -74,6 +74,7 @@ async function downloadIfUrl(videoUrl, destPath) {
   await ytdlp(videoUrl, {
     output: destPath,
     format: 'mp4',
+     proxy: 'http://13.201.84.208:80', // username/password nahi hai
     cookies: path.join(__dirname, '..', 'cookies.txt'),
 
     // Extra reliability flags
