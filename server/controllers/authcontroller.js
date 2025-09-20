@@ -8,12 +8,13 @@ const generateToken = require('../utils/tokenGenerator');
 // ✅ REGISTER
 exports.register = async (req, res) => {
   console.log("🛠 Inside Register Controller");
-  console.log("📦 Controller Body:", req.body);  // ✅ Yeh line daalo
+  console.log("📦 Controller Body:", req.body);
+
   try {
-    const {  email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     // Validate inputs
-    if (  !email || !password) {
+    if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -26,12 +27,13 @@ exports.register = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate OTP
-const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Save new user
     const newUser = new User({
-      
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
       otp,
@@ -40,13 +42,14 @@ const otp = Math.floor(100000 + Math.random() * 900000).toString();
     });
 
     await newUser.save();
-     // Send OTP Email
+
+    // Send OTP Email
     await sendEmail(
       email,
-      'Verify Your Email - project',
+      'Verify Your Email - Hook AI',
       `
       <div style="font-family: sans-serif; padding: 20px; background: #f0f4ff; border-radius: 8px;">
-        <h2 style="color: #4B0082;">project working</h2>
+        <h2 style="color: #4B0082;">Hook AI Registration</h2>
         <p>Thanks for registering! Please verify your email using the OTP below:</p>
         <div style="font-size: 24px; font-weight: bold; background: #007bff; color: white; padding: 10px; border-radius: 5px; text-align: center;">${otp}</div>
         <p style="margin-top: 20px;">This OTP will expire in 10 minutes.</p>
@@ -54,7 +57,27 @@ const otp = Math.floor(100000 + Math.random() * 900000).toString();
       `
     );
 
-    res.status(201).json({ message: 'User registered. OTP sent to email.' });
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Send response
+    const userData = {
+      id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      verified: newUser.verified,
+    };
+
+    res.status(201).json({
+      message: 'User registered. OTP sent to email.',
+      user: userData,
+      token,
+    });
 
   } catch (err) {
     console.error('❌ Registration error:', err);
@@ -132,7 +155,7 @@ exports.verifyOTP = async (req, res) => {
   }
 };*/
 
-exports.login = async (req, res) => {
+/*exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -146,6 +169,54 @@ exports.login = async (req, res) => {
     res.status(200).json({ message: 'Login successful', user: { email: user.email, name: user.name }, token });
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
+  }
+};*/
+
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // If user not verified, resend OTP and inform frontend
+    if (!user.verified) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    await sendEmail(
+        user.email,
+        "Verify Your Email - Hook AI",
+        `<div style="font-family: sans-serif; padding: 20px; background: #f0f4ff; border-radius: 8px;">
+            <h2 style="color: #4B0082;">Hook AI Registration</h2>
+            <p>Thanks for registering! Please verify your email using the OTP below:</p>
+            <div style="font-size: 24px; font-weight: bold; background: #007bff; color: white; padding: 10px; border-radius: 5px; text-align: center;">${otp}</div>
+            <p style="margin-top: 20px;">This OTP will expire in 10 minutes.</p>
+        </div>`
+    );
+
+    return res.status(403).json({
+        message: "Email not verified. OTP sent to your email.",
+        redirect: "/verify-otp",
+        email: user.email
+    });
+}
+
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = generateToken(user._id);
+    res.status(200).json({
+      message: "Login successful",
+      user: { email: user.email, name: user.name },
+      token,
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Login failed", error: err.message });
   }
 };
 

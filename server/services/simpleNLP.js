@@ -1,11 +1,11 @@
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const client = new OpenAI({
-  baseURL: "https://router.huggingface.co/v1",
-  apiKey: process.env.HF_TOKEN,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
- async function simpleGenScript(objective, tone, productInfo) {
+// Gemini model choose karna hai (latest: gemini-1.5-pro ya gemini-1.5-flash)
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+async function simpleGenScript(objective, tone, productInfo) {
   try {
     const prompt = `
       Objective: ${objective}
@@ -17,12 +17,10 @@ const client = new OpenAI({
       Keep it concise, catchy, and optimized for social media hooks.
     `;
 
-    const chatCompletion = await client.chat.completions.create({
-      model: "openai/gpt-oss-120b",
-      messages: [{ role: "user", content: prompt }],
-    });
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
 
-    return chatCompletion.choices[0].message.content;
+    return response;
   } catch (err) {
     console.error("Error generating script:", err);
     return null;
