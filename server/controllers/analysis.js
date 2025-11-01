@@ -90,35 +90,30 @@ function extractKeyframes(videoPath, outFolder, everySeconds = 3) {
   });
 }
 
- async function downloadIfUrl(videoUrl, destPath) {
-  console.log(`📥 Downloading from: ${videoUrl}`);
+ const downloadIfUrl = (url, output) => {
+  return new Promise((resolve, reject) => {
+    const ytdlp = require('yt-dlp-exec');
 
-  await ytdlp(videoUrl, {
-    // Output and container
-    output: destPath.replace(/\.mp4$/i, '.%(ext)s'),
-    mergeOutputFormat: 'mp4',
-
-    // More tolerant format chain for Shorts
-    // 1) mp4 video<=1080 + m4a audio, 2) any bv*+ba, 3) best mp4 single-file, 4) any best
-    format: 'bv*[ext=mp4][height<=1080]+ba[ext=m4a]/bv*+?ba/best[ext=mp4]/best',
-
-    // Reduce 403 on HLS/DASH fragments and add retries
-    concurrentFragments: 1,
-    retries: 10,
-    retrySleep: 3,
-    throttledRate: '100K',
-
-    // Prefer clients that currently fetch unblocked streams for Shorts
-    extractorArgs: 'youtube:player-client=web_embedded,web,tv',
-
-    // Stabilizers
-    noCheckCertificates: true,
-    noCallHome: true
+    ytdlp(url, {
+      output,
+      mergeOutputFormat: 'mp4',
+      format: "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/bv*+?ba/best[ext=mp4]/best",
+      concurrentFragments: 1,
+      retries: 10,
+      retrySleep: 3,
+      throttledRate: "100K",
+      // ✅ New safe extractor – removes deprecated players
+      extractorArgs: "youtube:player-client=web,web_embedded,tv",
+      // ✅ removed deprecated --no-call-home
+      noCheckCertificates: true,
+      // ✅ option: avoid 429 Too Many Requests
+      // cookies: "/opt/render/project/src/server/cookies.txt"
+    })
+      .then(() => resolve())
+      .catch((err) => reject(err));
   });
+};
 
-  console.log(`✅ Download complete: ${destPath}`);
-  return destPath;
-}
 
 /*
 async function downloadIfUrl(videoUrl, destPath) {
