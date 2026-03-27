@@ -1,4 +1,4 @@
-# 🚀 Hook-AI
+# 🚀 Hook-AI                                                                                                            🚧 This project is actively under development....
 
 Hook-AI is an AI-powered tool that generates high-converting marketing hooks for creators, startups, and businesses.
 
