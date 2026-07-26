@@ -97,21 +97,21 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("❌ Client disconnected"));
 });
 
-// ==========================
-// MongoDB Connection & High Load Optimization
-// ==========================
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
 mongoose
   .connect(process.env.MONGO_URI, {
     maxPoolSize: 100, // Handle up to 100 concurrent DB queries/connections
   })
   .then(() => {
     console.log("✅ MongoDB Connected");
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-    });
   })
-  .catch((err) => console.error("❌ MongoDB connection failed:", err));
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed on boot:", err.message || err);
+  });
 
 // Global Exception Handlers to keep the server running in case of unhandled errors
 process.on("uncaughtException", (err) => {
