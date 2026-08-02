@@ -1,2 +1,6 @@
 node_modules/
 cookies.txt
+.env
+*.env
+server/.env
+backend/.env

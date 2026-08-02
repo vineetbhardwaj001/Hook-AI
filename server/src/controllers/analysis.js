@@ -6,13 +6,61 @@ const ytdlp = require('yt-dlp-exec');
 const axios = require('axios');
 const ExcelJS = require('exceljs');
 const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-const client = new OpenAI({
+// ── Gemini client (reads Gemini_API_KEY from .env) ─────────────────────────
+const geminiKey = process.env.Gemini_API_KEY;
+if (!geminiKey) console.warn("⚠️  Gemini_API_KEY not set in .env – AI analysis may fail");
+const genAI = new GoogleGenerativeAI(geminiKey || "");
+const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // free: 1500 req/day
+
+// ── Whisper proxy (for audio transcription only) ───────────────────────────
+const whisperClient = new OpenAI({
   baseURL: "https://smart-parser-hub.preview.emergentagent.com/api/v1",
   apiKey: "sk-g3f-ojjyAwhHFgYWnjW8gOkpJm17cMZhcv6VHgoUWn2p",
 });
+
+// ── Helper: call Gemini with 429 retry ────────────────────────────────────
+async function geminiJSON(prompt, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await geminiModel.generateContent(prompt);
+      let text = result.response.text().trim();
+      text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+      return JSON.parse(text);
+    } catch (err) {
+      const is429 = err.message && (err.message.includes("429") || err.message.includes("quota") || err.message.includes("Too Many"));
+      if (is429 && attempt < retries) {
+        const waitMs = 65000; // wait 65s then retry
+        console.warn(`⏳ Gemini 429 rate limit hit. Waiting ${waitMs / 1000}s before retry ${attempt + 1}/${retries}...`);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+// ── Helper: call Gemini text (non-JSON) with 429 retry ─────────────────────
+async function geminiText(prompt, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await geminiModel.generateContent(prompt);
+      return result.response.text();
+    } catch (err) {
+      const is429 = err.message && (err.message.includes("429") || err.message.includes("quota") || err.message.includes("Too Many"));
+      if (is429 && attempt < retries) {
+        const waitMs = 65000;
+        console.warn(`⏳ Gemini 429. Waiting ${waitMs / 1000}s before retry ${attempt + 1}/${retries}...`);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
 
 // ==================== HELPERS ====================
 
@@ -212,41 +260,24 @@ function findHookAndCTA(transcript, durationSeconds) {
   return { hook: hook || 'No hook detected', hookIndex, hookTiming, cta: cta || 'No CTA found', ctaIndex, ctaTiming, ctaType, sentences };
 }
 
-// Sentiment Analysis
+// Sentiment Analysis via Gemini
 async function analyzeSentiment(text) {
   if (!text || text.trim() === '') {
-    return {
-      label: 'Neutral',
-      score: 0.5,
-      tones: ['Informative'],
-      primaryEmotion: 'Neutral',
-      feedback: 'No transcript available, using default sentiment.'
-    };
+    return { label: 'Neutral', score: 0.5, tones: ['Informative'], primaryEmotion: 'Neutral', feedback: 'No transcript available.' };
   }
-
   try {
-    const prompt = `Analyze the sentiment and emotion of the following text: "${text}". 
-Return ONLY a JSON object with these exact keys:
+    const prompt = `Analyze the sentiment and emotion of the following video transcript text.
+Return ONLY a valid JSON object with exactly these keys (no extra text, no markdown):
 {
-  "label": "Positive", "Negative", or "Neutral",
-  "score": A float between 0.0 and 1.0 representing confidence,
-  "primaryEmotion": The dominant emotion (e.g. Joy, Sadness, Anger, Fear, Surprise, etc.),
-  "tones": An array of strings describing the tone (e.g. ["Educational", "Enthusiastic"]).
-}`;
+  "label": "Positive" or "Negative" or "Neutral",
+  "score": a float between 0.0 and 1.0 representing confidence,
+  "primaryEmotion": dominant emotion (Joy, Sadness, Anger, Fear, Surprise, Motivation, Humor, Confidence, or Neutral),
+  "tones": array of 1-3 tone strings (e.g. ["Educational", "Enthusiastic"])
+}
 
-    const resp = await client.chat.completions.create({
-      model: "gemini-3-flash",
-      messages: [
-        { role: "system", content: "You are a helpful assistant that analyzes sentiment and returns ONLY valid JSON." },
-        { role: "user", content: prompt },
-      ],
-    });
+Text: "${text.slice(0, 800)}"`;
 
-    let jsonStr = resp.choices[0].message.content.trim();
-    if (jsonStr.startsWith('```json')) jsonStr = jsonStr.replace(/```json/g, '');
-    if (jsonStr.endsWith('```')) jsonStr = jsonStr.replace(/```/g, '');
-    const result = JSON.parse(jsonStr.trim());
-
+    const result = await geminiJSON(prompt);
     return {
       label: result.label || 'Neutral',
       score: result.score || 0.5,
@@ -255,14 +286,43 @@ Return ONLY a JSON object with these exact keys:
       feedback: `Sentiment detected as ${result.label || 'Neutral'}.`
     };
   } catch (error) {
-    console.error('Sentiment analysis error:', error);
-    return {
-      label: 'Neutral',
-      score: 0.5,
-      tones: ['Informative'],
-      primaryEmotion: 'Neutral',
-      feedback: 'Default sentiment due to error.'
-    };
+    console.error('Gemini sentiment error:', error.message);
+    return { label: 'Neutral', score: 0.5, tones: ['Informative'], primaryEmotion: 'Neutral', feedback: 'Default sentiment (Gemini error).' };
+  }
+}
+
+// AI Suggestions via Gemini
+async function generateAISuggestions(transcript, scores, hook, cta) {
+  try {
+    const prompt = `You are an expert YouTube video marketing coach.
+Analyze this video data and return ONLY a valid JSON array of exactly 3 improvement suggestions (no extra text, no markdown).
+
+Data:
+- Hook: "${hook}"
+- CTA: "${cta}"
+- Hook Strength Score: ${scores.hookStrength}/10
+- CTA Effectiveness: ${scores.ctaEffectiveness}/10
+- Engagement Potential: ${scores.engagementPotential}/10
+- Transcript snippet: "${transcript.slice(0, 400)}"
+
+Return format:
+[
+  { "title": "Short action title", "description": "1-2 sentence actionable tip", "category": "hook" or "cta" or "engagement" or "retention" },
+  { "title": "...", "description": "...", "category": "..." },
+  { "title": "...", "description": "...", "category": "..." }
+]`;
+
+    const result = await geminiModel.generateContent(prompt);
+    let text = result.response.text().trim();
+    text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    return JSON.parse(text);
+  } catch (err) {
+    console.error('Gemini AI suggestions error:', err.message);
+    return [
+      { title: "Improve Hook", description: "Start with a bold statement or question in the first 3 seconds to grab attention immediately.", category: "hook" },
+      { title: "Boost Engagement", description: "Add visual elements or B-roll footage around the 3–5 minute mark to maintain viewer interest.", category: "engagement" },
+      { title: "Strengthen CTA", description: "Make your call-to-action more specific and repeat it at the end for higher conversion.", category: "cta" }
+    ];
   }
 }
 
@@ -287,17 +347,20 @@ exports.analyzeVideo = async (req, res) => {
     if (videoUrl) {
       console.log('🤖 Sending link to Gemini for analysis...');
       try {
-        const resp = await client.chat.completions.create({
-          model: "gemini-3-flash",
-          messages: [
-            { role: "system", content: "You are an expert video marketer." },
-            { role: "user", content: `Analyze the video content at this link: ${videoUrl}. Find the core message, target audience, hooks used, and calls to action. Return the output in a clear, structured format.` },
-          ],
-        });
-        linkAnalysis = resp.choices[0].message.content;
+        const linkPrompt = `You are an expert video marketing analyst. Analyze the YouTube video at this URL: ${videoUrl}
+Provide a structured analysis including:
+1. Estimated core message / topic
+2. Target audience
+3. Hook strength (what grabs attention in first 5 seconds)
+4. Calls to action detected
+5. Content quality observations
+6. Suggestions for improvement
+
+Be specific and actionable.`;
+        linkAnalysis = await retryGemini(linkPrompt);
         console.log('✅ Gemini link analysis complete');
       } catch (e) {
-        console.error('Failed to analyze link with Gemini:', e);
+        console.warn('⚠️ Gemini link analysis failed (continuing without it):', e.message?.slice(0, 120));
       }
     }
 
@@ -330,12 +393,19 @@ exports.analyzeVideo = async (req, res) => {
       await extractAudioFromVideo(localVideoPath, tempAudio);
       console.log('✅ Audio extracted');
 
-      console.log('📝 Sending to Whisper...');
-      const whisperRes = await client.audio.transcriptions.create({
-        file: fs.createReadStream(tempAudio),
-        model: "whisper-1"
-      });
-      transcript = whisperRes.text || '';
+      // Try Whisper transcription — non-blocking, fall back to empty transcript
+      try {
+        console.log('📝 Sending audio to Whisper for transcription...');
+        const whisperRes = await whisperClient.audio.transcriptions.create({
+          file: fs.createReadStream(tempAudio),
+          model: "whisper-1"
+        });
+        transcript = whisperRes.text || '';
+        console.log('✅ Whisper transcription complete, words:', transcript.split(/\s+/).length);
+      } catch (whisperErr) {
+        console.warn('⚠️ Whisper transcription failed (local analysis only):', whisperErr.message?.slice(0, 100));
+        transcript = ''; // continue with empty transcript — scores computed from keywords
+      }
     } else {
       console.warn("⚠️ No audio track found, skipping transcription.");
     }
@@ -533,6 +603,9 @@ exports.analyzeVideo = async (req, res) => {
     };
 
 
+    console.log('🤖 Generating AI suggestions with Gemini...');
+    const aiSuggestions = await generateAISuggestions(transcript, scores, hook, cta);
+
     keyframeDir = path.join(uploadsDir, `frames_${Date.now()}`);
     console.log('📸 Extracting keyframes...');
     const frames = await extractKeyframes(localVideoPath, keyframeDir, 3);
@@ -603,7 +676,8 @@ exports.analyzeVideo = async (req, res) => {
       transcript: { duration: formatTime(durationSeconds), words: wordCount, wpm: `${wpm} WPM`, snippet: transcript.slice(0, 150) },
       topics,
       meta: { videoSource: videoUrl || path.basename(localVideoPath), framesExtracted: frames.length, processingTime: new Date().toISOString() },
-      linkAnalysis: linkAnalysis
+      linkAnalysis: linkAnalysis,
+      aiSuggestions: aiSuggestions
     });
 
   } catch (err) {

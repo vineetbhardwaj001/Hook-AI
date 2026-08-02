@@ -103,7 +103,7 @@ server.listen(PORT, () => {
 });
 
 mongoose
-  .connect(process.env.MONGO_URI, {
+  .connect(process.env.MONGO_URI || 'mongodb+srv://bhar-990:wB7PcnEz8sB9t4jZ@cluster0.tiyilrz.mongodb.net/hook?retryWrites=true&w=majority&appName=Cluster0', {
     maxPoolSize: 100, // Handle up to 100 concurrent DB queries/connections
   })
   .then(() => {

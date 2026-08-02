@@ -11,9 +11,9 @@ const sendEmail = async (to, subject, html) => {
 
   const mailOptions = {
     from: `"Aaroh AI" <${process.env.EMAIL_USER}>`,
-    to ,
-    subject  ,
-    html ,
+    to,
+    subject,
+    html,
   };
 
   try {

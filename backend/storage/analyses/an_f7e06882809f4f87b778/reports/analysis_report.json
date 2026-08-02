@@ -1,0 +1,138 @@
+{
+  "video": {
+    "title": "test_video.mp4",
+    "duration": 5.0,
+    "width": 1280,
+    "height": 720,
+    "source": "upload"
+  },
+  "summary": {
+    "overall_score": 2.5,
+    "rating": "Poor",
+    "summary": "Your video scored 2.5/10 overall (Poor). Hook strength: 0.0/10. CTA effectiveness: 0.0/10."
+  },
+  "scores": {
+    "overall": 2.5,
+    "hook": 0.0,
+    "cta": 0.0,
+    "tone": 5.0,
+    "visual": 5.0,
+    "pacing": 5.5,
+    "clarity": 4.0,
+    "engagement": 1.8
+  },
+  "hooks": {
+    "hook_score": 0.0,
+    "best_hook": null,
+    "hooks": [],
+    "opening_analysis": {
+      "first_3s": "",
+      "first_5s": "",
+      "first_10s": ""
+    },
+    "recommendations": [
+      "Add a clear hook in the first 3 seconds of your video."
+    ]
+  },
+  "cta": {
+    "cta_score": 0.0,
+    "ctas": [],
+    "has_cta": false,
+    "recommendations": [
+      "Add a clear call-to-action \u2014 tell viewers exactly what to do next."
+    ]
+  },
+  "tone": {
+    "primary_tone": "Unknown",
+    "sentiment": "Neutral",
+    "emotions": {
+      "neutral": 1.0
+    },
+    "energy_score": 50.0,
+    "clarity_score": 50.0,
+    "confidence_score": 50.0,
+    "observations": [
+      "Insufficient transcript for tone analysis."
+    ]
+  },
+  "transcript": {
+    "segments": [],
+    "duration": 5.0
+  },
+  "recommendations": [
+    {
+      "title": "Strengthen Your Opening Hook",
+      "description": "Your hook score is below average. Viewers decide in 3 seconds whether to keep watching.",
+      "priority": "high",
+      "category": "hook",
+      "timestamp": 0.0,
+      "reason": "Hook score: 0/100",
+      "suggested_action": "Start with a specific question, bold claim, or your strongest result. Example: 'In the next 60 seconds, I'll show you exactly how I...'",
+      "order_index": 0
+    },
+    {
+      "title": "Add a Clear Call-to-Action",
+      "description": "No CTA detected in your video. Videos without CTAs lose potential subscribers, followers, and conversions.",
+      "priority": "high",
+      "category": "cta",
+      "timestamp": null,
+      "reason": "Missing CTA means viewers have no clear next step",
+      "suggested_action": "Add a specific CTA near the end: 'Subscribe now and hit the bell so you never miss a video like this.'",
+      "order_index": 1
+    },
+    {
+      "title": "Increase Your Delivery Energy",
+      "description": "Your energy score is 50/100. Low-energy delivery causes viewer disengagement.",
+      "priority": "medium",
+      "category": "tone",
+      "timestamp": null,
+      "reason": "Low energy score detected from emotion analysis",
+      "suggested_action": "Speak 10-15% faster, use more varied intonation, and start sentences with action words.",
+      "order_index": 2
+    },
+    {
+      "title": "Improve Script Clarity",
+      "description": "Clarity score is 40/100. Use shorter sentences and clearer structure.",
+      "priority": "medium",
+      "category": "clarity",
+      "timestamp": null,
+      "reason": "Low clarity score from speech density analysis",
+      "suggested_action": "Use the rule of one: one idea per sentence, one topic per section. Avoid multi-part sentences.",
+      "order_index": 3
+    }
+  ],
+  "generated_script": {
+    "title": "Improved Script",
+    "hook": "In the next 30 seconds, I'll show you exactly what you need to know to get results.",
+    "sections": [
+      {
+        "type": "hook",
+        "text": "In the next 30 seconds, I'll show you exactly what you need to know to get results.",
+        "estimated_duration": 5
+      },
+      {
+        "type": "body",
+        "text": "[Body content from original video]",
+        "estimated_duration": 10
+      },
+      {
+        "type": "cta",
+        "text": "Subscribe to the channel and hit the bell icon so you never miss a video like this.",
+        "estimated_duration": 5
+      }
+    ],
+    "full_script": "In the next 30 seconds, I'll show you exactly what you need to know to get results.\n\n[Body content from original video]\n\nSubscribe to the channel and hit the bell icon so you never miss a video like this.",
+    "estimated_duration": 5,
+    "changes": [
+      "Moved hook to the first 3 seconds for maximum retention",
+      "Added platform-specific CTA at the end",
+      "Restructured opening for immediate engagement",
+      "Start with a specific question, bold claim, or your strongest result. Example: 'In the next 60 secon",
+      "Add a specific CTA near the end: 'Subscribe now and hit the bell so you never miss a video like this",
+      "Speak 10-15% faster, use more varied intonation, and start sentences with action words."
+    ],
+    "platform": "YouTube",
+    "tone": "Energetic",
+    "version": 1
+  }
+}
