@@ -7,6 +7,7 @@ const axios = require('axios');
 const ExcelJS = require('exceljs');
 const OpenAI = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Analysis = require("../models/Analysis");
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -661,7 +662,58 @@ Be specific and actionable.`;
     console.log("📊 Excel report saved:", excelPath);
 
 
+    // Save to Database
+    let savedAnalysis = null;
+    try {
+      savedAnalysis = await Analysis.create({
+        videoSource: videoUrl || (videoFile ? videoFile.originalname : path.basename(localVideoPath)),
+        videoType: videoUrl ? (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be") ? 'youtube' : 'link') : 'upload',
+        duration: formatTime(durationSeconds),
+        fileSize: videoFile ? videoFile.size : 0,
+
+        overallScore: +scores.overallScore.toFixed(1),
+        hookStrength: +scores.hookStrength.toFixed(1),
+        ctaEffectiveness: +scores.ctaEffectiveness.toFixed(1),
+        engagementPotential: +scores.engagementPotential.toFixed(1),
+        speechQuality: +scores.speechQuality.toFixed(1),
+
+        hookStrength100: Math.round(scores.hookStrength * 10),
+        ctaEffectiveness100: Math.round(scores.ctaEffectiveness * 10),
+        engagementPotential100: Math.round(scores.engagementPotential * 10),
+        retention100: Math.round(scores.speechQuality * 10),
+        overallScore100: Math.round(scores.overallScore * 10),
+
+        hookText: hook,
+        hookTiming: hookTiming,
+        ctaText: cta,
+        ctaTiming: ctaTiming,
+        ctaType: ctaType,
+
+        sentimentLabel: sentiment.label,
+        sentimentScore: sentiment.score,
+        primaryEmotion: sentiment.primaryEmotion,
+        tones: sentiment.tones || [],
+
+        wordCount: wordCount,
+        wpm: `${wpm} WPM`,
+        transcript: transcript,
+
+        topics: topics.topics || [],
+        entities: topics.entities || [],
+
+        aiSuggestions: aiSuggestions || [],
+        linkAnalysis: linkAnalysis || '',
+
+        status: 'completed'
+      });
+      console.log('✅ Analysis saved to DB with ID:', savedAnalysis._id);
+    } catch (dbErr) {
+      console.error('⚠️ DB Save failed:', dbErr.message);
+    }
+
     res.json({
+      _id: savedAnalysis ? savedAnalysis._id : null,
+      id: savedAnalysis ? savedAnalysis._id : null,
       overall: {
         score: +scores.overallScore.toFixed(1),
         hookStrength: +scores.hookStrength.toFixed(1),
@@ -692,5 +744,94 @@ Be specific and actionable.`;
         fs.unlinkSync(localVideoPath);
       }
     } catch (e) { }
+  }
+};
+
+// GET /api/analyses -> List all analyses
+exports.getAnalyses = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const analyses = await Analysis.find({})
+      .sort({ createdAt: -1 })
+      .limit(limit);
+    
+    res.json({ success: true, count: analyses.length, data: analyses });
+  } catch (err) {
+    console.error("Error fetching analyses:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// GET /api/analyses/:id -> Get single analysis by ID
+exports.getAnalysisById = async (req, res) => {
+  try {
+    const analysis = await Analysis.findById(req.params.id);
+    if (!analysis) {
+      return res.status(404).json({ success: false, error: "Analysis not found" });
+    }
+    
+    // Format response to match expected frontend structure for Results page
+    res.json({
+      _id: analysis._id,
+      id: analysis._id,
+      status: analysis.status,
+      video: {
+        title: analysis.videoSource,
+        source: analysis.videoSource,
+        type: analysis.videoType,
+        duration: analysis.duration,
+      },
+      summary: {
+        summary: analysis.linkAnalysis || `Analysis completed for ${analysis.videoSource}. Overall Hook score is ${analysis.overallScore100 || Math.round(analysis.overallScore * 10)}/100.`
+      },
+      scores: {
+        overall: analysis.overallScore,
+        overall100: analysis.overallScore100 || Math.round(analysis.overallScore * 10),
+        hook: analysis.hookStrength,
+        hook100: analysis.hookStrength100 || Math.round(analysis.hookStrength * 10),
+        cta: analysis.ctaEffectiveness,
+        cta100: analysis.ctaEffectiveness100 || Math.round(analysis.ctaEffectiveness * 10),
+        engagement: analysis.engagementPotential,
+        engagement100: analysis.engagementPotential100 || Math.round(analysis.engagementPotential * 10),
+        speech: analysis.speechQuality,
+        retention100: analysis.retention100 || Math.round(analysis.speechQuality * 10),
+        pacing: analysis.speechQuality,
+        clarity: Math.round((analysis.hookStrength + analysis.speechQuality) / 2)
+      },
+      hooks: {
+        text: analysis.hookText,
+        timing: analysis.hookTiming,
+        strength: analysis.hookStrength
+      },
+      cta: {
+        text: analysis.ctaText,
+        placement: analysis.ctaTiming,
+        type: analysis.ctaType,
+        effectiveness: analysis.ctaEffectiveness
+      },
+      sentiment: {
+        label: analysis.sentimentLabel,
+        score: analysis.sentimentScore,
+        primaryEmotion: analysis.primaryEmotion,
+        tones: analysis.tones
+      },
+      transcript: {
+        duration: analysis.duration,
+        words: analysis.wordCount,
+        wpm: analysis.wpm,
+        snippet: analysis.transcript ? analysis.transcript.slice(0, 200) : '',
+        full: analysis.transcript
+      },
+      topics: {
+        topics: analysis.topics,
+        entities: analysis.entities
+      },
+      recommendations: analysis.aiSuggestions,
+      aiSuggestions: analysis.aiSuggestions,
+      createdAt: analysis.createdAt
+    });
+  } catch (err) {
+    console.error("Error fetching analysis by ID:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

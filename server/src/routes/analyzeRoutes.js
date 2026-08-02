@@ -7,8 +7,12 @@ const analysisController = require("../controllers/analysis");
 const upload = multer({ dest: "uploads/" });
 
 // ✅ POST /api/analysis
-// Agar video file upload ho rahi hai → `upload.single("video")`
-// Agar sirf URL send kar rahe ho → req.body se handle hoga
 router.post("/analysis", upload.single("video"), analysisController.analyzeVideo);
+
+// ✅ GET /api/analyses
+router.get("/analyses", analysisController.getAnalyses);
+
+// ✅ GET /api/analyses/:id
+router.get("/analyses/:id", analysisController.getAnalysisById);
 
 module.exports = router;
