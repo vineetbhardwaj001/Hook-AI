@@ -30,6 +30,10 @@ const apiLimiter = rateLimit({
   message: { error: "Too many requests from this IP, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const userEmail = req.user?.email || req.headers["x-user-email"];
+    return userEmail && userEmail.toLowerCase() === "bhardwajvineet990@gmail.com";
+  }
 });
 app.use("/api/", apiLimiter);
 

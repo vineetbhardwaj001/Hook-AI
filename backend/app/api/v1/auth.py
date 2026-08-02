@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auth routes — signup, login, refresh, logout, me (MongoDB Motor Version)
 """
 from __future__ import annotations
@@ -119,6 +119,13 @@ async def login(req: LoginRequest, db: AsyncIOMotorDatabase = Depends(get_mongo_
 
     user_id_str = str(user_doc["_id"])
     user_doc["id"] = user_id_str
+
+    login_count = user_doc.get("login_count", 0) + 1
+    await db.users.update_one(
+        {"_id": user_doc["_id"]},
+        {"$set": {"login_count": login_count, "last_login": datetime.now(timezone.utc)}}
+    )
+    user_doc["login_count"] = login_count
 
     access_token = create_access_token(user_id_str, email_clean)
     refresh_raw = create_refresh_token()

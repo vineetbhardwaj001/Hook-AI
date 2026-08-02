@@ -1,4 +1,4 @@
-﻿"""Plans and usage API routes — Async MongoDB (Motor) implementation."""
+"""Plans and usage API routes — Async MongoDB (Motor) implementation."""
 from __future__ import annotations
 from typing import Dict, Any
 from fastapi import APIRouter, Depends
@@ -53,7 +53,22 @@ async def list_plans() -> Dict[str, Any]:
 async def get_usage(
     current_user: dict = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Fetch user plan limits and credit usage from MongoDB."""
+    # VIP Override for bhardwajvineet990@gmail.com
+    if current_user.get("email", "").strip().lower() == "bhardwajvineet990@gmail.com":
+        return {
+            "plan": "unlimited_pro",
+            "credits": {
+                "total": 999999,
+                "used": 0,
+                "remaining": 999999,
+            },
+            "limits": {
+                "max_video_duration": 86400,
+                "max_upload_size_mb": 5000,
+            },
+            "is_unlimited": True,
+        }
+
     db = get_mongo_db()
     uid = str(current_user.get("_id") or current_user.get("id") or current_user.get("user_id"))
 

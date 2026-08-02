@@ -1,4 +1,4 @@
-﻿"""
+"""
 Shared dependencies for FastAPI routes (MongoDB / Motor Version).
 """
 from __future__ import annotations
@@ -103,9 +103,17 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 5. Normalize Identifiers
+    # 5. Normalize Identifiers & Apply VIP Unlimited Tier
     user_doc["id"] = str(user_doc.get("_id") or user_doc.get("id"))
     user_doc["_id"] = str(user_doc["_id"])
+
+    # Grant unlimited analysis privileges to bhardwajvineet990@gmail.com
+    if user_doc.get("email", "").strip().lower() == "bhardwajvineet990@gmail.com":
+        user_doc["plan"] = "unlimited_pro"
+        user_doc["is_unlimited"] = True
+        user_doc["credits_remaining"] = 999999
+        user_doc["monthly_credits"] = 999999
+        user_doc["credits_used"] = 0
 
     return UserContext(user_doc)
 
