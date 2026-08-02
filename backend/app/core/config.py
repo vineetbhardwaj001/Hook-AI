@@ -19,7 +19,8 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./hookai.db"
-    mongo_uri: str = "mongodb+srv://bhar-990:wB7PcnEz8sB9t4jZ@cluster0.tiyilrz.mongodb.net/hook?appName=Cluster0"
+    mongo_uri: str = "mongodb://localhost:27017/hook"  # Safe default fallback (overridden by .env / Render)
+    mongodb_db_name: str = "hook"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -30,8 +31,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
 
-    # CORS — stored as comma-separated string to avoid pydantic-settings JSON parsing
-    cors_origins_str: str = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8080"
+    # CORS — comma-separated string to avoid pydantic-settings JSON parsing issues
+    cors_origins_str: str = (
+        "http://localhost:3000,"
+        "http://localhost:5173,"
+        "http://localhost:5174,"
+        "http://localhost:8080,"
+        "https://new-hook.vercel.app"
+    )
 
     @property
     def cors_origins(self) -> List[str]:
@@ -52,7 +59,7 @@ class Settings(BaseSettings):
 
     # AI Device & Profile
     hook_ai_device: str = "auto"
-    hook_ai_profile: str = "balanced"
+    hook_ai_profile: str = "balanced"  # Set HOOK_AI_PROFILE=light on Render Free tier
 
     # Models
     whisper_model: str = "openai/whisper-large-v3-turbo"
