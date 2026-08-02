@@ -1,11 +1,10 @@
-﻿"""Plans and usage API routes."""
+﻿"""Plans and usage API routes — Async MongoDB (Motor) implementation."""
 from __future__ import annotations
+from typing import Dict, Any
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+
 from app.api.v1.deps import get_current_user
-from app.db.session import get_db
-from app.models.user import User, Plan, Subscription
+from app.db.mongo import get_mongo_db
 
 router = APIRouter(prefix="/plans", tags=["Plans"])
 
@@ -45,34 +44,44 @@ PLANS_CONFIG = [
 
 
 @router.get("")
-async def list_plans():
+async def list_plans() -> Dict[str, Any]:
+    """Return configured pricing tiers."""
     return {"plans": PLANS_CONFIG}
 
 
 @router.get("/usage")
 async def get_usage(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    sub_q = (await db.execute(
-        select(Subscription, Plan)
-        .join(Plan, Plan.id == Subscription.plan_id)
-        .where(Subscription.user_id == current_user.id, Subscription.is_active == True)
-        .order_by(Subscription.created_at.desc())
-    )).first()
+    current_user: dict = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Fetch user plan limits and credit usage from MongoDB."""
+    db = get_mongo_db()
+    uid = str(current_user.get("_id") or current_user.get("id") or current_user.get("user_id"))
 
-    if sub_q:
-        sub, plan = sub_q
-        plan_name = plan.name
-        total = plan.monthly_credits
-        used = sub.credits_used
-        remaining = sub.credits_remaining
-        max_dur = plan.max_video_duration_seconds
-        max_size = plan.max_upload_size_mb
+    # Query active subscription from MongoDB subscriptions collection
+    sub = await db.subscriptions.find_one(
+        {"user_id": uid, "is_active": True},
+        sort=[("created_at", -1)]
+    )
+
+    if sub:
+        plan_id = sub.get("plan_id", "free")
+        plan_cfg = next((p for p in PLANS_CONFIG if p["id"] == plan_id), PLANS_CONFIG[0])
+        plan_name = plan_cfg["name"]
+        total = sub.get("monthly_credits", plan_cfg["monthly_credits"])
+        used = sub.get("credits_used", 0)
+        remaining = sub.get("credits_remaining", max(0, total - used))
+        max_dur = plan_cfg["max_video_duration_seconds"]
+        max_size = plan_cfg["max_upload_size_mb"]
     else:
-        plan_name = "free"
-        total, used, remaining = 10, 0, 10
-        max_dur, max_size = 600, 100
+        # Fallback to user document embedded plan settings
+        user_plan = current_user.get("plan", "free")
+        plan_cfg = next((p for p in PLANS_CONFIG if p["id"] == user_plan), PLANS_CONFIG[0])
+        plan_name = plan_cfg["name"]
+        total = plan_cfg["monthly_credits"]
+        used = current_user.get("credits_used", 0)
+        remaining = current_user.get("credits_remaining", max(0, total - used))
+        max_dur = plan_cfg["max_video_duration_seconds"]
+        max_size = plan_cfg["max_upload_size_mb"]
 
     return {
         "plan": plan_name,

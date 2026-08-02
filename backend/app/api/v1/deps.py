@@ -1,71 +1,122 @@
 ﻿"""
-Shared dependency: get_current_user from JWT (MongoDB / Motor Version).
+Shared dependencies for FastAPI routes (MongoDB / Motor Version).
 """
 from __future__ import annotations
+from typing import Optional, Dict, Any
 from bson import ObjectId, errors as bson_errors
 from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.core.exceptions import AuthenticationError, TokenExpiredError
 from app.db.mongo import get_mongo_db
 
+settings = get_settings()
+security_scheme = HTTPBearer(auto_error=False)
+
 
 class UserContext(dict):
-    """Dictionary wrapper that allows both dot notation (user.id) and dict indexing (user['id'])."""
-    def __getattr__(self, name: str):
+    """
+    Dictionary wrapper allowing both attribute dot notation (`user.id`, `user.email`) 
+    and dictionary indexing (`user['id']`, `user['email']`).
+    """
+    def __getattr__(self, name: str) -> Any:
         try:
             return self[name]
         except KeyError:
             raise AttributeError(f"'UserContext' object has no attribute '{name}'")
 
-    def __setattr__(self, name: str, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         self[name] = value
 
 
 async def get_current_user(
     request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncIOMotorDatabase = Depends(get_mongo_db)
 ) -> UserContext:
     """
-    Extract JWT token from Authorization header and fetch current user from MongoDB.
+    Extracts JWT from the Authorization header, validates the payload, 
+    and returns the authenticated user document from MongoDB.
     """
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    # 1. Extract Bearer Token
+    token: Optional[str] = None
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    else:
+        # Fallback manual header check
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated."
+            detail="Not authenticated.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = auth_header.split(" ", 1)[1]
+    # 2. Decode & Verify JWT Token
     try:
         payload = decode_access_token(token)
-    except (AuthenticationError, TokenExpiredError) as e:
-        msg = getattr(e, "message", str(e))
+    except TokenExpiredError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=msg
+            detail="Token has expired.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except (AuthenticationError, Exception) as e:
+        msg = getattr(e, "message", str(e)) or "Invalid authentication token."
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=msg,
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user_id = payload.get("sub")
+    user_id: Optional[str] = payload.get("sub") or payload.get("user_id")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload."
-        )
+        raise credentials_exception
 
-    # Fetch user from MongoDB users collection
+    # 3. Query User Document from MongoDB
+    user_doc = None
     try:
-        user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
-    except bson_errors.InvalidId:
-        user_doc = await db.users.find_one({"_id": user_id})
+        if ObjectId.is_valid(user_id):
+            user_doc = await db.users.find_one({"$or": [{"_id": ObjectId(user_id)}, {"id": user_id}]})
+        else:
+            user_doc = await db.users.find_one({"$or": [{"_id": user_id}, {"id": user_id}]})
+    except (bson_errors.InvalidId, Exception):
+        user_doc = await db.users.find_one({"id": user_id})
 
+    # 4. Check Activity & Existence
     if not user_doc or not user_doc.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive."
+            detail="User account not found or deactivated.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Ensure 'id' string field exists
-    user_doc["id"] = str(user_doc["_id"])
+    # 5. Normalize Identifiers
+    user_doc["id"] = str(user_doc.get("_id") or user_doc.get("id"))
+    user_doc["_id"] = str(user_doc["_id"])
+
     return UserContext(user_doc)
+
+
+async def get_current_active_user(
+    current_user: UserContext = Depends(get_current_user)
+) -> UserContext:
+    """Dependency helper to verify active user status."""
+    if not current_user.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user account."
+        )
+    return current_user

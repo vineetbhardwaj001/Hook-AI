@@ -1,53 +1,57 @@
-﻿"""Profile API routes."""
+﻿"""Profile API route — Async MongoDB (Motor) implementation."""
 from __future__ import annotations
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from typing import Dict, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, EmailStr
+
 from app.api.v1.deps import get_current_user
-from app.db.session import get_db
-from app.models.user import User
-from app.schemas.auth import UserOut
+from app.db.mongo import get_mongo_db
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
 
-class ProfileUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    company: Optional[str] = None
-    creator_category: Optional[str] = None
-    preferred_platform: Optional[str] = None
-    notify_email: Optional[bool] = None
-    avatar_url: Optional[str] = None
+class ProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
 
 
-@router.get("", response_model=UserOut)
-async def get_profile(current_user: User = Depends(get_current_user)):
-    return UserOut.model_validate(current_user)
+@router.get("")
+async def get_profile(current_user: dict = Depends(get_current_user)) -> Dict[str, Any]:
+    """Fetch profile data for the authenticated user."""
+    user_id = str(current_user.get("_id") or current_user.get("id"))
+    
+    return {
+        "id": user_id,
+        "email": current_user.get("email", ""),
+        "full_name": current_user.get("full_name", ""),
+        "role": current_user.get("role", "user"),
+        "created_at": current_user.get("created_at"),
+    }
 
 
-@router.patch("", response_model=UserOut)
+@router.put("")
 async def update_profile(
-    update: ProfileUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if update.first_name is not None:
-        current_user.first_name = update.first_name
-    if update.last_name is not None:
-        current_user.last_name = update.last_name
-    if update.company is not None:
-        current_user.company = update.company
-    if update.creator_category is not None:
-        current_user.creator_category = update.creator_category
-    if update.preferred_platform is not None:
-        current_user.preferred_platform = update.preferred_platform
-    if update.notify_email is not None:
-        current_user.notify_email = update.notify_email
-    if update.avatar_url is not None:
-        current_user.avatar_url = update.avatar_url
-    await db.commit()
-    await db.refresh(current_user)
-    return UserOut.model_validate(current_user)
+    payload: ProfileUpdateRequest,
+    current_user: dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Update profile details in MongoDB."""
+    db = get_mongo_db()
+    user_id = str(current_user.get("_id") or current_user.get("id"))
+
+    update_fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields provided to update.")
+
+    await db.users.update_one(
+        {"$or": [{"_id": user_id}, {"id": user_id}]},
+        {"$set": update_fields}
+    )
+
+    updated_user = await db.users.find_one({"$or": [{"_id": user_id}, {"id": user_id}]}) or {}
+
+    return {
+        "id": user_id,
+        "email": updated_user.get("email", ""),
+        "full_name": updated_user.get("full_name", ""),
+        "message": "Profile updated successfully.",
+    }
