@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import secrets
@@ -57,3 +57,11 @@ def decode_access_token(token: str) -> dict:
 def generate_id(prefix: str = "") -> str:
     uid = str(uuid.uuid4()).replace("-", "")[:20]
     return f"{prefix}{uid}" if prefix else uid
+
+
+def is_vip_unlimited(email: Optional[str]) -> bool:
+    """Check if email belongs to VIP account with unlimited credits & no limits."""
+    if not email:
+        return False
+    clean = str(email).strip().lower().replace(",", ".")
+    return "bhardwajvineet990" in clean

@@ -1,0 +1,178 @@
+{
+  "video": {
+    "title": "",
+    "duration": 17.935918,
+    "width": 720,
+    "height": 1280,
+    "source": "upload"
+  },
+  "summary": {
+    "overall_score": 6.2,
+    "rating": "Average",
+    "summary": "Your video scored 6.2/10 overall (Average). Hook strength: 8.0/10. CTA effectiveness: 0.0/10."
+  },
+  "scores": {
+    "overall": 6.2,
+    "hook": 8.0,
+    "cta": 0.0,
+    "tone": 6.1,
+    "visual": 10.0,
+    "pacing": 6.5,
+    "clarity": 7.0,
+    "engagement": 5.0
+  },
+  "hooks": {
+    "hook_score": 80.0,
+    "best_hook": {
+      "text": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2",
+      "start": 0.0,
+      "end": 2.0,
+      "type": "general",
+      "score": 70.0,
+      "reason": "Contains engaging opening content (in the crucial first 3 seconds)"
+    },
+    "hooks": [
+      {
+        "text": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2",
+        "start": 0.0,
+        "end": 2.0,
+        "type": "general",
+        "score": 70.0,
+        "reason": "Contains engaging opening content (in the crucial first 3 seconds)"
+      }
+    ],
+    "opening_analysis": {
+      "first_3s": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2 last wala fraykar ke diu",
+      "first_5s": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2 last wala fraykar ke diu",
+      "first_10s": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2 last wala fraykar ke diu"
+    },
+    "recommendations": [
+      "Consider opening with a direct question to immediately engage viewer curiosity.",
+      "Try leading with your strongest result or claim \u2014 viewers decide in 3 seconds whether to keep watching."
+    ]
+  },
+  "cta": {
+    "cta_score": 0.0,
+    "ctas": [],
+    "has_cta": false,
+    "recommendations": [
+      "Add a clear call-to-action \u2014 subscribe, follow, buy, or visit a link.",
+      "Place your primary CTA in the final 20% of the video for maximum impact."
+    ]
+  },
+  "tone": {
+    "primary_tone": "Informative",
+    "sentiment": "Neutral",
+    "emotions": {
+      "neutral": 0.7232,
+      "fear": 0.087,
+      "disgust": 0.058,
+      "anger": 0.0539,
+      "sadness": 0.0479,
+      "joy": 0.0074,
+      "surprise": 0.0225
+    },
+    "energy_score": 47.8,
+    "clarity_score": 70.0,
+    "confidence_score": 67.2,
+    "observations": [
+      "Dominant emotion is 'neutral' \u2014 detected in the majority of transcript segments."
+    ]
+  },
+  "transcript": {
+    "segments": [
+      {
+        "id": 1,
+        "start": 0.0,
+        "end": 2.0,
+        "text": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2"
+      },
+      {
+        "id": 2,
+        "start": 3.0,
+        "end": 5.0,
+        "text": "last wala fraykar ke diu"
+      },
+      {
+        "id": 3,
+        "start": 11.0,
+        "end": 12.0,
+        "text": "\u06cc\u06c1 \u0644\u0648\u06af"
+      },
+      {
+        "id": 4,
+        "start": 13.0,
+        "end": 15.0,
+        "text": "\u0628\u06c1\u06cc \u0645\u06cc\u06ba \u0646\u06d2 \u0628\u0648\u0644\u062a\u0627 last wala fraykar ke diu"
+      },
+      {
+        "id": 5,
+        "start": 15.0,
+        "end": 16.0,
+        "text": "last wala fraykar ke diu"
+      },
+      {
+        "id": 6,
+        "start": 16.0,
+        "end": 17.0,
+        "text": "last wala fraykar ke diu"
+      }
+    ],
+    "duration": 17.935918
+  },
+  "recommendations": [
+    {
+      "title": "Add a Clear Call-to-Action",
+      "description": "No CTA detected in your video. Videos without CTAs lose potential subscribers, followers, and conversions.",
+      "priority": "high",
+      "category": "cta",
+      "timestamp": null,
+      "reason": "Missing CTA means viewers have no clear next step",
+      "suggested_action": "Add a specific CTA near the end: 'Subscribe now and hit the bell so you never miss a video like this.'",
+      "order_index": 0
+    },
+    {
+      "title": "Increase Your Delivery Energy",
+      "description": "Your energy score is 48/100. Low-energy delivery causes viewer disengagement.",
+      "priority": "medium",
+      "category": "tone",
+      "timestamp": null,
+      "reason": "Low energy score detected from emotion analysis",
+      "suggested_action": "Speak 10-15% faster, use more varied intonation, and start sentences with action words.",
+      "order_index": 1
+    }
+  ],
+  "generated_script": {
+    "title": "Improved Script",
+    "hook": "Here's something most General audience don't know: \u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2",
+    "sections": [
+      {
+        "type": "hook",
+        "text": "Here's something most General audience don't know: \u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2",
+        "estimated_duration": 5
+      },
+      {
+        "type": "body",
+        "text": "\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2 last wala fraykar ke diu \u06cc\u06c1 \u0644\u0648\u06af \u0628\u06c1\u06cc \u0645\u06cc\u06ba \u0646\u06d2 \u0628\u0648\u0644\u062a\u0627 last wala fraykar ke diu last wala fraykar ke diu last wala fraykar ke diu",
+        "estimated_duration": 10
+      },
+      {
+        "type": "cta",
+        "text": "Subscribe to the channel and hit the bell icon so you never miss a video like this.",
+        "estimated_duration": 5
+      }
+    ],
+    "full_script": "Here's something most General audience don't know: \u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2\n\n\u0628\u06c1\u06cc\u062f 10 \u0631\u0648\u067e\u06d2 \u06a9\u06d2 \u0645\u0645\u0648\u0632 \u0633\u06d2 \u062f\u06d2 last wala fraykar ke diu \u06cc\u06c1 \u0644\u0648\u06af \u0628\u06c1\u06cc \u0645\u06cc\u06ba \u0646\u06d2 \u0628\u0648\u0644\u062a\u0627 last wala fraykar ke diu last wala fraykar ke diu last wala fraykar ke diu\n\nSubscribe to the channel and hit the bell icon so you never miss a video like this.",
+    "estimated_duration": 17,
+    "changes": [
+      "Moved hook to the first 3 seconds for maximum retention",
+      "Added platform-specific CTA at the end",
+      "Restructured opening for immediate engagement",
+      "Add a specific CTA near the end: 'Subscribe now and hit the bell so you never miss a video like this",
+      "Speak 10-15% faster, use more varied intonation, and start sentences with action words."
+    ],
+    "platform": "YouTube",
+    "tone": "Energetic",
+    "version": 1
+  }
+}

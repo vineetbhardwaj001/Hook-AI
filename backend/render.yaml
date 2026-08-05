@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: hook-ai-backend
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: HOOK_AI_PROFILE
+        value: light
+      - key: WHISPER_MODEL_SIZE
+        value: tiny
+      - key: TORCH_NUM_THREADS
+        value: 1
+      - key: MONGO_URI
+        value: mongodb+srv://bhar-990:wB7PcnEz8sB9t4jZ@cluster0.tiyilrz.mongodb.net/hook?appName=Cluster0

@@ -72,7 +72,8 @@ async def create_analysis(
         content = await video.read()
         size_bytes = len(content)
 
-        is_unlimited = current_user.get("email", "").strip().lower() == "bhardwajvineet990@gmail.com"
+        from app.core.security import is_vip_unlimited
+        is_unlimited = is_vip_unlimited(current_user.get("email"))
         if not is_unlimited and size_bytes > settings.max_video_size_mb * 1024 * 1024:
             raise VideoTooLargeError(settings.max_video_size_mb)
 
@@ -354,6 +355,57 @@ async def get_result(
         generated_script=script_data,
         report=report_data,
     )
+
+
+# ── Export Report (XLSX) ──────────────────────────────────────────────────────
+
+@router.get("/{analysis_id}/export")
+async def export_report(
+    analysis_id: str,
+    format: str = Query("xlsx"),
+    db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    current_user: UserContext = Depends(get_current_user),
+):
+    from fastapi.responses import Response, FileResponse
+    analysis = await _get_owned_analysis(db, analysis_id, current_user.id)
+
+    reports_dir = Path(settings.storage_local_base) / "analyses" / analysis_id / "reports"
+    xlsx_path = reports_dir / "analysis_report.xlsx"
+
+    if xlsx_path.exists():
+        return FileResponse(
+            path=str(xlsx_path),
+            filename=f"hook_ai_report_{analysis_id[:8]}.xlsx",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    try:
+        from app.services.report_service import generate_xlsx_report
+        res_doc = await get_result(analysis_id, db, current_user)
+        report_bytes = generate_xlsx_report(res_doc.model_dump())
+
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        xlsx_path.write_bytes(report_bytes)
+
+        return Response(
+            content=report_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="hook_ai_report_{analysis_id[:8]}.xlsx"'}
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate export report for {analysis_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate report file.")
+
+
+# ── Alias GET /{analysis_id} ──────────────────────────────────────────────────
+
+@router.get("/{analysis_id}", response_model=AnalysisResult)
+async def get_result_alias(
+    analysis_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    current_user: UserContext = Depends(get_current_user),
+):
+    return await get_result(analysis_id, db, current_user)
 
 
 # ── Delete Analysis ───────────────────────────────────────────────────────────

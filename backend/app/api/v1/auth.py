@@ -59,6 +59,9 @@ async def signup(req: SignupRequest, db: AsyncIOMotorDatabase = Depends(get_mong
     if existing:
         raise HTTPException(status_code=400, detail="An account with this email already exists.")
 
+    from app.core.security import is_vip_unlimited
+    is_vip = is_vip_unlimited(email_clean)
+
     # Create user document
     user_doc = {
         "email": email_clean,
@@ -67,6 +70,8 @@ async def signup(req: SignupRequest, db: AsyncIOMotorDatabase = Depends(get_mong
         "last_name": req.last_name,
         "is_verified": True,
         "is_active": True,
+        "plan": "unlimited_pro" if is_vip else "free",
+        "is_unlimited": is_vip,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
@@ -74,12 +79,12 @@ async def signup(req: SignupRequest, db: AsyncIOMotorDatabase = Depends(get_mong
     user_id_str = str(result.inserted_id)
     user_doc["id"] = user_id_str
 
-    # Assign free plan subscription
+    # Assign free plan or VIP unlimited subscription
     free_plan = await _get_or_create_free_plan(db)
     sub_doc = {
         "user_id": user_id_str,
         "plan_id": str(free_plan["_id"]),
-        "credits_remaining": free_plan.get("monthly_credits", 10),
+        "credits_remaining": 999999 if is_vip else free_plan.get("monthly_credits", 10),
         "credits_used": 0,
         "created_at": datetime.now(timezone.utc),
     }

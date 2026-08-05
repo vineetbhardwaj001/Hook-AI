@@ -108,12 +108,15 @@ async def get_current_user(
     user_doc["_id"] = str(user_doc["_id"])
 
     # Grant unlimited analysis privileges to bhardwajvineet990@gmail.com
-    if user_doc.get("email", "").strip().lower() == "bhardwajvineet990@gmail.com":
+    from app.core.security import is_vip_unlimited
+    user_email = user_doc.get("email") or payload.get("email") or ""
+    if is_vip_unlimited(user_email):
         user_doc["plan"] = "unlimited_pro"
         user_doc["is_unlimited"] = True
         user_doc["credits_remaining"] = 999999
         user_doc["monthly_credits"] = 999999
         user_doc["credits_used"] = 0
+        user_doc["is_admin"] = True
 
     return UserContext(user_doc)
 

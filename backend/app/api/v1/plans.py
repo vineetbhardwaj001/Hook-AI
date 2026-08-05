@@ -53,8 +53,8 @@ async def list_plans() -> Dict[str, Any]:
 async def get_usage(
     current_user: dict = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    # VIP Override for bhardwajvineet990@gmail.com
-    if current_user.get("email", "").strip().lower() == "bhardwajvineet990@gmail.com":
+    from app.core.security import is_vip_unlimited
+    if is_vip_unlimited(current_user.get("email")):
         return {
             "plan": "unlimited_pro",
             "credits": {

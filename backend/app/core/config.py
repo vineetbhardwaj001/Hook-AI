@@ -57,17 +57,17 @@ class Settings(BaseSettings):
     s3_access_key: str = ""
     s3_secret_key: str = ""
 
-    # AI Device & Profile
-    hook_ai_device: str = "auto"
-    hook_ai_profile: str = "balanced"  # Set HOOK_AI_PROFILE=light on Render Free tier
+    # AI Device & Profile (Optimized for 512MB RAM Render Free tier)
+    hook_ai_device: str = "cpu"
+    hook_ai_profile: str = "light"  # Uses lightweight tiny models under 150MB RAM
 
-    # Models
-    whisper_model: str = "openai/whisper-large-v3-turbo"
-    whisper_model_size: str = "base"
+    # Models (Optimized for low RAM & fast 39MB download)
+    whisper_model: str = "openai/whisper-tiny"
+    whisper_model_size: str = "tiny"
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     emotion_model: str = "j-hartmann/emotion-english-distilroberta-base"
-    vision_model: str = "Qwen/Qwen3-VL-4B-Instruct"
-    text_generation_model: str = "microsoft/Phi-3-mini-4k-instruct"
+    vision_model: str = ""
+    text_generation_model: str = ""
 
     # FFmpeg
     ffmpeg_path: str = "ffmpeg"

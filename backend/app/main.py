@@ -5,6 +5,13 @@ With custom animated landing template for root URL (`/`).
 from __future__ import annotations
 import asyncio
 import os
+
+# Limit CPU worker threads to prevent RAM spikes on 512MB Render free instances
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["TORCH_NUM_THREADS"] = "1"
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 

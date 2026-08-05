@@ -1,4 +1,4 @@
-﻿"""
+"""
 CTA Detection Engine — keyword + regex + semantic embedding.
 """
 from __future__ import annotations
@@ -181,12 +181,28 @@ def detect_ctas(
 
     recommendations = _build_cta_recommendations(deduped, duration)
 
-    return {
+    res = {
         "cta_score": cta_score,
         "ctas": deduped,
         "has_cta": has_cta,
         "recommendations": recommendations,
     }
+    return enrich_cta_analysis(res, duration)
+
+
+def enrich_cta_analysis(cta_result: dict, duration: float) -> dict:
+    """Enrich CTA response with optimal placement window for UI rendering."""
+    duration_val = max(10.0, float(duration or 30.0))
+    optimal_start = round(max(0.0, duration_val * 0.8), 1)
+    optimal_end = round(duration_val, 1)
+
+    cta_result["best_placement"] = {
+        "start": optimal_start,
+        "end": optimal_end,
+        "label": f"{int(optimal_start)}s - {int(optimal_end)}s",
+        "recommendation": f"Add your CTA in the final 20% of the video ({int(optimal_start)}s - {int(optimal_end)}s)."
+    }
+    return cta_result
 
 
 def _build_cta_recommendations(ctas: list, duration: float) -> List[str]:
